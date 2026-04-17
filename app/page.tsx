@@ -181,84 +181,72 @@ export default function Page() {
 
   // GENERATE
   const handleGenerate = async () => {
-    if (!text.trim()) return;
-    if (!usageReady) return;
+  if (!text.trim()) return;
+  if (!usageReady) return;
 
-    setLimitReached(false);
-    setLoading(true);
+  setLimitReached(false);
+  setLoading(true);
 
-    try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        body: JSON.stringify({ text }),
-        headers: { "Content-Type": "application/json" },
-      });
+  try {
+    const res = await fetch("/api/generate?resetUsage=true", {
+      method: "POST",
+      body: JSON.stringify({ text }),
+      headers: { "Content-Type": "application/json" },
+    });
 
-      const data = await res.json();
+    const data = await res.json();
 
-      console.log("generate status:", res.status);
-      console.log("generate data:", data);
+    console.log("generate status:", res.status);
+    console.log("generate data:", data);
 
-      if (!res.ok) {
-        if (res.status === 403) {
-          setLimitReached(true);
+    // 👇 THIS IS IMPORTANT
+    setLimitReached(res.status === 403);
 
-          if (data?.usage) {
-            setUsageInfo(data.usage);
-          }
-        } else {
-          alert(data?.result || "Generate failed");
-        }
-        return;
-      }
+    if (!res.ok) {
+      alert(data?.result || "Generate failed");
+      return;
+    }
 
-      if (!data?.result || typeof data.result !== "string") {
-        alert("No references were returned.");
-        return;
-      }
+    if (data?.usage) {
+      setUsageInfo(data.usage);
+    }
 
-      const newRefs = data.result
-        .split("\n")
-        .map((r: string) => r.replace(/^[-–—]\s*/, "").trim())
-        .filter((r: string) => r.length > 0);
+    if (!data?.result || typeof data.result !== "string") {
+      alert("No references were returned.");
+      return;
+    }
 
-      if (newRefs.length === 0) {
-        alert("No references were generated.");
-        return;
-      }
+    const newRefs = data.result
+      .split("\n")
+      .map((r: string) => r.replace(/^[-–—]\s*/, "").trim())
+      .filter((r: string) => r.length > 0);
 
-      const mergedResults = [...results, ...newRefs].sort((a, b) =>
-        a.localeCompare(b, undefined, { sensitivity: "base" })
+    if (newRefs.length === 0) {
+      alert("No references were generated.");
+      return;
+    }
+
+    const mergedResults = [...results, ...newRefs].sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: "base" })
+    );
+
+    setResults(mergedResults);
+
+    if (canUseHistory) {
+      const uniqueHistory = Array.from(new Set([...history, ...newRefs])).sort(
+        (a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })
       );
 
-      setResults(mergedResults);
-
-      if (canUseHistory) {
-        const uniqueHistory = Array.from(new Set([...history, ...newRefs])).sort(
-          (a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })
-        );
-
-        setHistory(uniqueHistory);
-        localStorage.setItem("refai-history", JSON.stringify(uniqueHistory));
-      }
-
-      if (data?.usage) {
-        setUsageInfo(data.usage);
-      } else if (canUseUnlimited) {
-        setUsageInfo({
-          isPro: true,
-          usedToday: null,
-          dailyLimit: null,
-          remaining: null,
-        });
-      }
-    } catch (error) {
-      console.error("Generate failed:", error);
-      alert("Something went wrong while generating references.");
-    } finally {
-      setLoading(false);
+      setHistory(uniqueHistory);
+      localStorage.setItem("refai-history", JSON.stringify(uniqueHistory));
     }
-  };
+  } catch (error) {
+    console.error("Generate failed:", error);
+    alert("Something went wrong while generating references.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // PDF
   const exportPDF = () => {
@@ -437,21 +425,20 @@ return "Free plan — usage updates after first generation";
                 : "Generate References"}
             </button>
 
-            {/* LIMIT MESSAGE */}
-            {limitReached && (
-              <div className="mt-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-                <p className="text-sm text-white/70">
-                  You’ve reached the free limit. Upgrade to Pro for unlimited
-                  access.
-                </p>
-                <button
-                  onClick={goToPricing}
-                  className="mt-3 bg-white text-black px-4 py-2 rounded-xl"
-                >
-                  Upgrade to Pro
-                </button>
-              </div>
-            )}
+          {/* LIMIT MESSAGE */}
+{limitReached && (
+  <div className="mt-4 p-4 rounded-2xl bg-red-500/10 border border-red-500/30">
+    <p className="text-sm text-white/70">
+      DEBUG: latest request returned 403
+    </p>
+    <button
+      onClick={goToPricing}
+      className="mt-3 bg-white text-black px-4 py-2 rounded-xl"
+    >
+      Upgrade to Pro
+    </button>
+  </div>
+)}
 
             {/* GENERATED */}
             {results.length > 0 && (
