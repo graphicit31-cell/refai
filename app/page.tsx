@@ -29,6 +29,7 @@ export default function Page() {
   const [usageReady, setUsageReady] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
   const [usageInfo, setUsageInfo] = useState<UsageInfo | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   const { isLoaded, isSignedIn, has } = useAuth();
   const { user } = useUser();
@@ -61,6 +62,17 @@ export default function Page() {
   const goToPricing = () => {
     window.location.href = "/pricing";
   };
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     const shouldRefresh =
@@ -103,6 +115,8 @@ export default function Page() {
   }, [isLoaded, canUseUnlimited]);
 
   useEffect(() => {
+    if (isMobile) return;
+
     const onWheel = (e: WheelEvent) => {
       const el = e.target as Node;
 
@@ -124,16 +138,26 @@ export default function Page() {
 
     window.addEventListener("wheel", onWheel, { passive: true });
     return () => window.removeEventListener("wheel", onWheel);
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
+    if (isMobile) {
+      document.body.style.overflow = "";
+      return;
+    }
+
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "";
     };
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
+    if (isMobile) {
+      setIsFinal(false);
+      return;
+    }
+
     let frameId = 0;
 
     const animate = () => {
@@ -165,9 +189,9 @@ export default function Page() {
 
     frameId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frameId);
-  }, []);
+  }, [isMobile]);
 
-  const y = scroll.current;
+  const y = isMobile ? 0 : scroll.current;
 
   const handleGenerate = async () => {
     if (!text.trim()) return;
@@ -286,10 +310,14 @@ export default function Page() {
   };
 
   return (
-    <main className="fixed inset-0 bg-black text-white overflow-hidden">
+    <main
+      className={`inset-0 bg-black text-white ${
+        isMobile ? "relative min-h-screen overflow-x-hidden" : "fixed overflow-hidden"
+      }`}
+    >
       <div
         className={`fixed top-6 left-6 right-6 z-[999] flex items-center justify-between transition-opacity duration-500 ${
-          isFinal ? "opacity-0" : "opacity-100"
+          !isMobile && isFinal ? "opacity-0" : "opacity-100"
         }`}
       >
         <Logo />
@@ -324,45 +352,53 @@ export default function Page() {
 
       <div className="absolute inset-0 bg-black" />
 
-      <div
-        className={`absolute inset-0 transition-opacity duration-700 ${
-          isFinal ? "opacity-0" : "opacity-100"
-        }`}
-      >
-        {blobs.current.map((b, i) => (
-          <div
-            key={i}
-            className={`absolute w-72 h-72 blur-3xl rounded-full opacity-30 ${
-              i === 0
-                ? "bg-blue-500"
-                : i === 1
-                ? "bg-indigo-500"
-                : "bg-cyan-400"
-            }`}
-            style={{
-              transform: `translate(calc(50vw + ${b.x}px), calc(50vh + ${b.y}px))`,
-            }}
-          />
-        ))}
-      </div>
+      {!isMobile && (
+        <div
+          className={`absolute inset-0 transition-opacity duration-700 ${
+            isFinal ? "opacity-0" : "opacity-100"
+          }`}
+        >
+          {blobs.current.map((b, i) => (
+            <div
+              key={i}
+              className={`absolute w-72 h-72 blur-3xl rounded-full opacity-30 ${
+                i === 0
+                  ? "bg-blue-500"
+                  : i === 1
+                  ? "bg-indigo-500"
+                  : "bg-cyan-400"
+              }`}
+              style={{
+                transform: `translate(calc(50vw + ${b.x}px), calc(50vh + ${b.y}px))`,
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       <div
         ref={worldRef}
-        className="absolute inset-0 will-change-transform"
-        style={{ transform: `translateY(${-y}px)` }}
+        className={isMobile ? "relative z-10" : "absolute inset-0 will-change-transform"}
+        style={isMobile ? undefined : { transform: `translateY(${-y}px)` }}
       >
         <section className="h-screen flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-6xl font-bold">RefAI</h1>
+          <div className="text-center px-6">
+            <h1 className="text-5xl md:text-6xl font-bold">RefAI</h1>
             <p className="text-white/60 mt-4">
               AI-powered APA reference generator
             </p>
           </div>
         </section>
 
-        <section className="h-screen flex items-center justify-center">
-          <div className="max-w-2xl p-10 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl text-center">
-            <h2 className="text-4xl font-bold mb-6">
+        <section className="h-screen flex items-center justify-center px-6">
+          <div
+            className={`max-w-2xl p-10 rounded-3xl text-center ${
+              isMobile
+                ? "bg-white/5 border border-white/10"
+                : "bg-white/5 border border-white/10 backdrop-blur-xl"
+            }`}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">
               A new way to write academic references
             </h2>
             <p className="text-white/60">
