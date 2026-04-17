@@ -7,6 +7,17 @@ const client = new OpenAI({
 });
 
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY!;
+const FREE_DAILY_LIMIT = 3;
+
+// Temporary in-memory usage store
+// key example: "user_123:2026-04-17" => 2
+// NOTE: This resets when the server restarts and is not reliable for production/serverless.
+const usageStore = new Map<string, number>();
+
+function getTodayKey(userId: string) {
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  return `${userId}:${today}`;
+}
 
 // ======================
 // SAFE TAVILY (WITH TIMEOUT)
@@ -14,7 +25,7 @@ const TAVILY_API_KEY = process.env.TAVILY_API_KEY!;
 async function tavilySearch(query: string) {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000); // 8s max
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
     const res = await fetch("https://api.tavily.com/search", {
       method: "POST",
@@ -59,18 +70,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const isPro = has({ feature: "unlimited_generations" });
-
-    if (!isPro) {
-      return NextResponse.json(
-        { result: "Free limit reached. Upgrade to Pro for unlimited access." },
-        { status: 403 }
-      );
-    }
-
     const { text } = await req.json();
 
-    if (!text) {
+    if (!text || typeof text !== "string" || !text.trim()) {
       return NextResponse.json(
         { result: "No text provided." },
         { status: 400 }
@@ -78,7 +80,22 @@ export async function POST(req: Request) {
     }
 
     // ======================
-    // 1. EXTRACT KEYWORDS
+    // 1. PLAN / LIMIT CHECK
+    // ======================
+    const isPro = has({ feature: "unlimited_generations" });
+
+    const usageKey = getTodayKey(userId);
+    const currentUsage = usageStore.get(usageKey) ?? 0;
+
+    if (!isPro && currentUsage >= FREE_DAILY_LIMIT) {
+      return NextResponse.json(
+        { result: "Free limit reached. Upgrade to Pro for unlimited access." },
+        { status: 403 }
+      );
+    }
+
+    // ======================
+    // 2. EXTRACT KEYWORDS
     // ======================
     const queryRes = await client.responses.create({
       model: "gpt-4.1-mini",
@@ -108,17 +125,20 @@ ${text}
       .map((q) => q.trim())
       .filter(Boolean);
 
+    // fallback if keyword extraction returns nothing
+    const safeQueries = queries.length > 0 ? queries : [text.trim()];
+
     // ======================
-    // 2. TAVILY SEARCH (SAFE PARALLEL)
+    // 3. TAVILY SEARCH
     // ======================
     const resultsArrays = await Promise.all(
-      queries.map((q) => tavilySearch(q))
+      safeQueries.map((q) => tavilySearch(q))
     );
 
     const allResults = resultsArrays.flat();
 
     // ======================
-    // 3. FALLBACK
+    // 4. FALLBACK SOURCE DATA
     // ======================
     const sourceData =
       allResults.length > 0
@@ -126,7 +146,7 @@ ${text}
         : [{ title: "No sources found", url: "" }];
 
     // ======================
-    // 4. FORMAT APA
+    // 5. FORMAT APA
     // ======================
     const formatRes = await client.responses.create({
       model: "gpt-4.1-mini",
@@ -139,15 +159,14 @@ RULES:
 - One reference per line
 - Include URL if available
 - No invented sources
+- If the source data is incomplete, do your best with ONLY the available fields
+- Do not add explanations
 
 SOURCES:
 ${JSON.stringify(sourceData)}
       `,
     });
 
-    // ======================
-    // 5. SAFE OUTPUT PARSING
-    // ======================
     let output = "";
 
     for (const item of formatRes.output || []) {
@@ -160,12 +179,25 @@ ${JSON.stringify(sourceData)}
       }
     }
 
+    // ======================
+    // 6. INCREMENT FREE USAGE ONLY AFTER SUCCESS
+    // ======================
+    if (!isPro) {
+      usageStore.set(usageKey, currentUsage + 1);
+    }
+
     return NextResponse.json({
       result: output || "No references generated.",
       sources: allResults.map((r: any) => ({
         title: r.title,
         url: r.url,
       })),
+      usage: {
+        isPro,
+        usedToday: isPro ? null : currentUsage + 1,
+        dailyLimit: isPro ? null : FREE_DAILY_LIMIT,
+        remaining: isPro ? null : Math.max(0, FREE_DAILY_LIMIT - (currentUsage + 1)),
+      },
     });
   } catch (error) {
     console.error("API ERROR:", error);

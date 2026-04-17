@@ -12,6 +12,13 @@ import {
   useUser,
 } from "@clerk/nextjs";
 
+type UsageInfo = {
+  isPro: boolean;
+  usedToday: number | null;
+  dailyLimit: number | null;
+  remaining: number | null;
+};
+
 export default function Page() {
   const [text, setText] = useState("");
   const [results, setResults] = useState<string[]>([]);
@@ -23,10 +30,9 @@ export default function Page() {
   const [comment, setComment] = useState("");
 
   // SUBSCRIPTION / LIMIT SECTION
-  const FREE_DAILY_LIMIT = 3;
-  const [usageCount, setUsageCount] = useState(0);
   const [usageReady, setUsageReady] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
+  const [usageInfo, setUsageInfo] = useState<UsageInfo | null>(null);
 
   const { isLoaded, isSignedIn, has } = useAuth();
   const { user } = useUser();
@@ -56,8 +62,6 @@ export default function Page() {
 
   const canUseHistory =
     isLoaded && isSignedIn ? has({ feature: "history_access" }) : false;
-
-  const remainingGenerations = Math.max(0, FREE_DAILY_LIMIT - usageCount);
 
   const goToPricing = () => {
     window.location.href = "/pricing";
@@ -89,22 +93,21 @@ export default function Page() {
     if (saved) setHistory(JSON.parse(saved));
   }, []);
 
-  // LOAD / RESET DAILY USAGE
+  // READY STATE
   useEffect(() => {
-    const today = new Date().toDateString();
-    const savedDate = localStorage.getItem("refai-usage-date");
-    const savedCount = localStorage.getItem("refai-usage-count");
+    if (isLoaded) {
+      setUsageReady(true);
 
-    if (savedDate !== today) {
-      localStorage.setItem("refai-usage-date", today);
-      localStorage.setItem("refai-usage-count", "0");
-      setUsageCount(0);
-    } else {
-      setUsageCount(Number(savedCount || 0));
+      if (canUseUnlimited) {
+        setUsageInfo({
+          isPro: true,
+          usedToday: null,
+          dailyLimit: null,
+          remaining: null,
+        });
+      }
     }
-
-    setUsageReady(true);
-  }, []);
+  }, [isLoaded, canUseUnlimited]);
 
   // SCROLL CONTROL
   useEffect(() => {
@@ -140,6 +143,8 @@ export default function Page() {
 
   // ANIMATION
   useEffect(() => {
+    let frameId = 0;
+
     const animate = () => {
       scroll.current += (target.current - scroll.current) * 0.08;
 
@@ -147,34 +152,32 @@ export default function Page() {
       const h = window.innerHeight;
 
       blobs.current = blobs.current.map((b) => {
-        const x = b.x + b.dx;
-        const y = b.y + b.dy;
+        let { x, y, dx, dy } = b;
+
+        x += dx;
+        y += dy;
 
         const limitX = w / 2 - 150;
         const limitY = h / 2 - 150;
 
-        if (x > limitX || x < -limitX) b.dx *= -1;
-        if (y > limitY || y < -limitY) b.dy *= -1;
+        if (x > limitX || x < -limitX) dx *= -1;
+        if (y > limitY || y < -limitY) dy *= -1;
 
-        return { ...b, x, y };
+        return { x, y, dx, dy };
       });
 
       setIsFinal(scroll.current > window.innerHeight * 1.5);
 
       force((v) => v + 1);
-      requestAnimationFrame(animate);
+      frameId = requestAnimationFrame(animate);
     };
 
-    animate();
+    frameId = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(frameId);
   }, []);
 
   const y = scroll.current;
-
-  const incrementUsage = () => {
-    const next = usageCount + 1;
-    setUsageCount(next);
-    localStorage.setItem("refai-usage-count", String(next));
-  };
 
   // GENERATE
   const handleGenerate = async () => {
@@ -182,12 +185,6 @@ export default function Page() {
     if (!usageReady) return;
 
     setLimitReached(false);
-
-    if (!canUseUnlimited && usageCount >= FREE_DAILY_LIMIT) {
-      setLimitReached(true);
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -199,17 +196,36 @@ export default function Page() {
 
       const data = await res.json();
 
+      console.log("generate status:", res.status);
+      console.log("generate data:", data);
+
       if (!res.ok) {
         if (res.status === 403) {
           setLimitReached(true);
+
+          if (data?.usage) {
+            setUsageInfo(data.usage);
+          }
+        } else {
+          alert(data?.result || "Generate failed");
         }
+        return;
+      }
+
+      if (!data?.result || typeof data.result !== "string") {
+        alert("No references were returned.");
         return;
       }
 
       const newRefs = data.result
         .split("\n")
         .map((r: string) => r.replace(/^[-–—]\s*/, "").trim())
-        .filter(Boolean);
+        .filter((r: string) => r.length > 0);
+
+      if (newRefs.length === 0) {
+        alert("No references were generated.");
+        return;
+      }
 
       const mergedResults = [...results, ...newRefs].sort((a, b) =>
         a.localeCompare(b, undefined, { sensitivity: "base" })
@@ -226,11 +242,19 @@ export default function Page() {
         localStorage.setItem("refai-history", JSON.stringify(uniqueHistory));
       }
 
-      if (!canUseUnlimited) {
-        incrementUsage();
+      if (data?.usage) {
+        setUsageInfo(data.usage);
+      } else if (canUseUnlimited) {
+        setUsageInfo({
+          isPro: true,
+          usedToday: null,
+          dailyLimit: null,
+          remaining: null,
+        });
       }
     } catch (error) {
       console.error("Generate failed:", error);
+      alert("Something went wrong while generating references.");
     } finally {
       setLoading(false);
     }
@@ -252,19 +276,33 @@ export default function Page() {
 
   // CLEAR FUNCTIONS
   const clearAll = () => setResults([]);
+
   const clearHistory = () => {
     setHistory([]);
     localStorage.removeItem("refai-history");
   };
 
-  // COMMENT → Gmail
+  // COMMENT → mail app
   const sendComment = () => {
     const subject = encodeURIComponent("RefAI Feedback");
     const body = encodeURIComponent(comment);
 
     window.open(`mailto:yourgmail@gmail.com?subject=${subject}&body=${body}`);
-
     setComment("");
+  };
+
+  const usageMessage = () => {
+    if (!usageReady) return "Checking usage...";
+
+    if (usageInfo?.isPro || canUseUnlimited) {
+      return "Pro plan active — unlimited generations";
+    }
+
+    if (usageInfo && typeof usageInfo.remaining === "number") {
+      return `Free plan — ${usageInfo.remaining} generation(s) left today`;
+    }
+
+    return "Free plan — usage will update after your first generation";
   };
 
   return (
@@ -371,21 +409,7 @@ export default function Page() {
             </div>
 
             {/* PLAN / USAGE INFO */}
-            <div className="mb-4 text-sm text-white/60">
-              {!usageReady
-                ? "Checking usage..."
-                : canUseUnlimited
-                ? "Pro plan active — unlimited generations"
-                : `Free plan — ${remainingGenerations} generation(s) left today`}
-            </div>
-
-            {/* DEBUG (temporary) */}
-            <div className="text-xs text-white/40 mb-4">
-              loaded: {String(isLoaded)} | signedIn: {String(isSignedIn)} | pro:{" "}
-              {String(canUseUnlimited)} | pdf: {String(canUsePdfExport)} | history:{" "}
-              {String(canUseHistory)} | usageReady: {String(usageReady)} | usageCount:{" "}
-              {usageCount}
-            </div>
+            <div className="mb-4 text-sm text-white/60">{usageMessage()}</div>
 
             {/* INPUT */}
             <textarea
@@ -400,13 +424,17 @@ export default function Page() {
             <button
               onClick={handleGenerate}
               disabled={loading || !usageReady}
-              className={`w-full py-3 rounded-2xl ${
+              className={`w-full py-3 rounded-2xl transition ${
                 loading || !usageReady
                   ? "bg-blue-500/50 cursor-not-allowed"
-                  : "bg-blue-500"
+                  : "bg-blue-500 hover:opacity-90"
               }`}
             >
-              {!usageReady ? "Checking plan..." : loading ? "Generating..." : "Generate References"}
+              {!usageReady
+                ? "Checking plan..."
+                : loading
+                ? "Generating..."
+                : "Generate References"}
             </button>
 
             {/* LIMIT MESSAGE */}
@@ -435,7 +463,7 @@ export default function Page() {
                   <p className="text-sm text-white/60">Generated</p>
                   <button
                     onClick={clearAll}
-                    className="text-xs border px-2 py-1"
+                    className="text-xs border px-2 py-1 rounded-lg hover:bg-white/10 transition"
                   >
                     Clear
                   </button>
@@ -451,10 +479,10 @@ export default function Page() {
 
                 <button
                   onClick={exportPDF}
-                  className={`mt-4 w-full py-2 rounded-xl ${
+                  className={`mt-4 w-full py-2 rounded-xl transition ${
                     canUsePdfExport
-                      ? "bg-cyan-500"
-                      : "bg-white/10 border border-white/10"
+                      ? "bg-cyan-500 hover:opacity-90"
+                      : "bg-white/10 border border-white/10 hover:bg-white/15"
                   }`}
                 >
                   {canUsePdfExport ? "Export PDF" : "Upgrade to export PDF"}
@@ -473,7 +501,7 @@ export default function Page() {
                     <p className="text-sm text-white/60">History</p>
                     <button
                       onClick={clearHistory}
-                      className="text-xs border px-2 py-1"
+                      className="text-xs border px-2 py-1 rounded-lg hover:bg-white/10 transition"
                     >
                       Clear History
                     </button>
@@ -495,7 +523,7 @@ export default function Page() {
                 </p>
                 <button
                   onClick={goToPricing}
-                  className="mt-3 bg-blue-500 px-4 py-2 rounded-xl"
+                  className="mt-3 bg-blue-500 px-4 py-2 rounded-xl hover:opacity-90 transition"
                 >
                   Upgrade
                 </button>
@@ -515,9 +543,9 @@ export default function Page() {
 
               <button
                 onClick={sendComment}
-                className="w-full bg-green-500 py-2 rounded-xl"
+                className="w-full bg-green-500 py-2 rounded-xl hover:opacity-90 transition"
               >
-                Send via Gmail
+                Send Feedback
               </button>
             </div>
           </div>
