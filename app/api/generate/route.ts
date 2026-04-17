@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -9,14 +9,13 @@ const client = new OpenAI({
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY!;
 const FREE_DAILY_LIMIT = 3;
 
-// Temporary in-memory usage store
-// key example: "user_123:2026-04-17" => 2
-// NOTE: This resets when the server restarts and is not reliable for production/serverless.
-const usageStore = new Map<string, number>();
+type RefAiUsageMetadata = {
+  date: string;
+  count: number;
+};
 
-function getTodayKey(userId: string) {
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  return `${userId}:${today}`;
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
 // ======================
@@ -58,9 +57,6 @@ async function tavilySearch(query: string) {
 // ======================
 export async function POST(req: Request) {
   try {
-    // ======================
-    // 0. CLERK AUTH CHECK
-    // ======================
     const { userId, has } = await auth();
 
     if (!userId) {
@@ -79,23 +75,47 @@ export async function POST(req: Request) {
       );
     }
 
-    // ======================
-    // 1. PLAN / LIMIT CHECK
-    // ======================
     const isPro = has({ feature: "unlimited_generations" });
+    const today = getTodayKey();
 
-    const usageKey = getTodayKey(userId);
-    const currentUsage = usageStore.get(usageKey) ?? 0;
+    let currentUsage = 0;
 
-    if (!isPro && currentUsage >= FREE_DAILY_LIMIT) {
-      return NextResponse.json(
-        { result: "Free limit reached. Upgrade to Pro for unlimited access." },
-        { status: 403 }
-      );
+    if (!isPro) {
+      const clerk = await clerkClient();
+      const user = await clerk.users.getUser(userId);
+
+      const usage = user.privateMetadata?.refaiUsage as
+        | RefAiUsageMetadata
+        | undefined;
+
+      if (usage?.date === today && typeof usage.count === "number") {
+        currentUsage = usage.count;
+      }
+
+      console.log("userId:", userId);
+      console.log("isPro:", isPro);
+      console.log("today:", today);
+      console.log("currentUsage:", currentUsage);
+      console.log("FREE_DAILY_LIMIT:", FREE_DAILY_LIMIT);
+
+      if (currentUsage >= FREE_DAILY_LIMIT) {
+        return NextResponse.json(
+          {
+            result: "Free limit reached. Upgrade to Pro for unlimited access.",
+            usage: {
+              isPro: false,
+              usedToday: currentUsage,
+              dailyLimit: FREE_DAILY_LIMIT,
+              remaining: 0,
+            },
+          },
+          { status: 403 }
+        );
+      }
     }
 
     // ======================
-    // 2. EXTRACT KEYWORDS
+    // 1. EXTRACT KEYWORDS
     // ======================
     const queryRes = await client.responses.create({
       model: "gpt-4.1-mini",
@@ -125,11 +145,10 @@ ${text}
       .map((q) => q.trim())
       .filter(Boolean);
 
-    // fallback if keyword extraction returns nothing
     const safeQueries = queries.length > 0 ? queries : [text.trim()];
 
     // ======================
-    // 3. TAVILY SEARCH
+    // 2. TAVILY SEARCH
     // ======================
     const resultsArrays = await Promise.all(
       safeQueries.map((q) => tavilySearch(q))
@@ -138,7 +157,7 @@ ${text}
     const allResults = resultsArrays.flat();
 
     // ======================
-    // 4. FALLBACK SOURCE DATA
+    // 3. FALLBACK SOURCE DATA
     // ======================
     const sourceData =
       allResults.length > 0
@@ -146,7 +165,7 @@ ${text}
         : [{ title: "No sources found", url: "" }];
 
     // ======================
-    // 5. FORMAT APA
+    // 4. FORMAT APA
     // ======================
     const formatRes = await client.responses.create({
       model: "gpt-4.1-mini",
@@ -180,10 +199,36 @@ ${JSON.stringify(sourceData)}
     }
 
     // ======================
-    // 6. INCREMENT FREE USAGE ONLY AFTER SUCCESS
+    // 5. SAVE UPDATED USAGE
     // ======================
+    let usageResponse = {
+      isPro,
+      usedToday: null as number | null,
+      dailyLimit: null as number | null,
+      remaining: null as number | null,
+    };
+
     if (!isPro) {
-      usageStore.set(usageKey, currentUsage + 1);
+      const nextUsage = currentUsage + 1;
+      const clerk = await clerkClient();
+
+      await clerk.users.updateUserMetadata(userId, {
+        privateMetadata: {
+          refaiUsage: {
+            date: today,
+            count: nextUsage,
+          },
+        },
+      });
+
+      console.log("newUsage:", nextUsage);
+
+      usageResponse = {
+        isPro: false,
+        usedToday: nextUsage,
+        dailyLimit: FREE_DAILY_LIMIT,
+        remaining: Math.max(0, FREE_DAILY_LIMIT - nextUsage),
+      };
     }
 
     return NextResponse.json({
@@ -192,12 +237,7 @@ ${JSON.stringify(sourceData)}
         title: r.title,
         url: r.url,
       })),
-      usage: {
-        isPro,
-        usedToday: isPro ? null : currentUsage + 1,
-        dailyLimit: isPro ? null : FREE_DAILY_LIMIT,
-        remaining: isPro ? null : Math.max(0, FREE_DAILY_LIMIT - (currentUsage + 1)),
-      },
+      usage: usageResponse,
     });
   } catch (error) {
     console.error("API ERROR:", error);

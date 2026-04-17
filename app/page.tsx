@@ -292,17 +292,17 @@ export default function Page() {
   };
 
   const usageMessage = () => {
-    if (!usageReady) return "Checking usage...";
+   if (!usageReady) return "Checking usage...";
 
-    if (usageInfo?.isPro || canUseUnlimited) {
-      return "Pro plan active — unlimited generations";
-    }
+if (usageInfo?.isPro) {
+  return "Pro plan active — unlimited generations";
+}
 
-    if (usageInfo && typeof usageInfo.remaining === "number") {
-      return `Free plan — ${usageInfo.remaining} generation(s) left today`;
-    }
+if (usageInfo) {
+  return `Free plan — ${usageInfo.remaining} left today`;
+}
 
-    return "Free plan — usage will update after your first generation";
+return "Free plan — usage updates after first generation";
   };
 
   return (
