@@ -352,15 +352,22 @@ export default function Page() {
 
       <div className="absolute inset-0 bg-black" />
 
-      {isMobile ? (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-[#050816] to-black" />
-          <div className="absolute -top-40 -left-20 w-[300px] h-[300px] bg-blue-500/30 rounded-full blur-2xl" />
-          <div className="absolute top-1/3 -right-20 w-[260px] h-[260px] bg-indigo-500/25 rounded-full blur-2xl" />
-          <div className="absolute bottom-0 left-1/3 w-[280px] h-[280px] bg-cyan-400/20 rounded-full blur-2xl" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05),transparent_60%)]" />
-        </div>
-      ) : (
+     {isMobile ? (
+  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    {/* base */}
+    <div className="absolute inset-0 bg-gradient-to-b from-black via-[#050816] to-black" />
+
+    {/* 🔵 main blue glow (NEW - stronger focal point) */}
+    <div className="absolute top-[-80px] left-1/2 -translate-x-1/2 w-[380px] h-[380px] bg-blue-500/40 rounded-full blur-3xl" />
+
+    {/* secondary blobs */}
+    <div className="absolute top-1/3 -left-20 w-[260px] h-[260px] bg-indigo-500/30 rounded-full blur-2xl" />
+    <div className="absolute bottom-0 right-[-60px] w-[300px] h-[300px] bg-cyan-400/25 rounded-full blur-2xl" />
+
+    {/* subtle highlight */}
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.06),transparent_60%)]" />
+  </div>
+) : (
         <div
           className={`absolute inset-0 transition-opacity duration-700 ${
             isFinal ? "opacity-0" : "opacity-100"
