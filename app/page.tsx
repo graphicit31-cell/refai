@@ -352,15 +352,18 @@ export default function Page() {
 
       <div className="absolute inset-0 bg-black" />
 
-     {isMobile ? (
+      {isMobile ? (
   <div className="absolute inset-0 overflow-hidden pointer-events-none">
     {/* base */}
     <div className="absolute inset-0 bg-gradient-to-b from-black via-[#050816] to-black" />
 
-    {/* 🔵 main blue glow (NEW - stronger focal point) */}
+    {/* main blue glow */}
     <div className="absolute top-[-80px] left-1/2 -translate-x-1/2 w-[380px] h-[380px] bg-blue-500/40 rounded-full blur-3xl" />
 
-    {/* secondary blobs */}
+    {/* new middle brand blob */}
+    <div className="absolute top-[38%] left-1/2 -translate-x-1/2 w-[240px] h-[240px] bg-indigo-500/28 rounded-full blur-2xl" />
+
+    {/* side blobs */}
     <div className="absolute top-1/3 -left-20 w-[260px] h-[260px] bg-indigo-500/30 rounded-full blur-2xl" />
     <div className="absolute bottom-0 right-[-60px] w-[300px] h-[300px] bg-cyan-400/25 rounded-full blur-2xl" />
 
