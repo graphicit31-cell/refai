@@ -25,11 +25,7 @@ export default function Page() {
   const [history, setHistory] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [isFinal, setIsFinal] = useState(false);
-
-  // COMMENT SECTION
   const [comment, setComment] = useState("");
-
-  // SUBSCRIPTION / LIMIT SECTION
   const [usageReady, setUsageReady] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
   const [usageInfo, setUsageInfo] = useState<UsageInfo | null>(null);
@@ -53,7 +49,6 @@ export default function Page() {
     { x: -180, y: 150, dx: 1.0, dy: -1.2 },
   ]);
 
-  // FEATURE CHECKS
   const canUseUnlimited =
     isLoaded && isSignedIn ? has({ feature: "unlimited_generations" }) : false;
 
@@ -87,13 +82,11 @@ export default function Page() {
     run();
   }, [user]);
 
-  // LOAD HISTORY
   useEffect(() => {
     const saved = localStorage.getItem("refai-history");
     if (saved) setHistory(JSON.parse(saved));
   }, []);
 
-  // READY STATE
   useEffect(() => {
     if (isLoaded) {
       setUsageReady(true);
@@ -109,7 +102,6 @@ export default function Page() {
     }
   }, [isLoaded, canUseUnlimited]);
 
-  // SCROLL CONTROL
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
       const el = e.target as Node;
@@ -141,7 +133,6 @@ export default function Page() {
     };
   }, []);
 
-  // ANIMATION
   useEffect(() => {
     let frameId = 0;
 
@@ -173,82 +164,89 @@ export default function Page() {
     };
 
     frameId = requestAnimationFrame(animate);
-
     return () => cancelAnimationFrame(frameId);
   }, []);
 
   const y = scroll.current;
 
-  // GENERATE
   const handleGenerate = async () => {
-  if (!text.trim()) return;
-  if (!usageReady) return;
+    if (!text.trim()) return;
+    if (!usageReady) return;
 
-  setLimitReached(false);
-  setLoading(true);
+    setLoading(true);
+    setLimitReached(false);
 
-  try {
-    const res = await fetch("/api/generate?resetUsage=true", {
-      method: "POST",
-      body: JSON.stringify({ text }),
-      headers: { "Content-Type": "application/json" },
-    });
+    try {
+      console.log("fetching /api/generate");
 
-    const data = await res.json();
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
 
-    console.log("generate status:", res.status);
-    console.log("generate data:", data);
+      const data = await res.json();
 
-    // 👇 THIS IS IMPORTANT
-    setLimitReached(res.status === 403);
+      console.log("generate status:", res.status);
+      console.log("generate data:", data);
 
-    if (!res.ok) {
-      alert(data?.result || "Generate failed");
-      return;
-    }
+      setLimitReached(res.status === 403);
 
-    if (data?.usage) {
-      setUsageInfo(data.usage);
-    }
+      if (!res.ok) {
+        if (res.status !== 403) {
+          alert(data?.result || "Generate failed");
+        }
+        return;
+      }
 
-    if (!data?.result || typeof data.result !== "string") {
-      alert("No references were returned.");
-      return;
-    }
+      if (data?.usage) {
+        setUsageInfo(data.usage);
+      }
 
-    const newRefs = data.result
-      .split("\n")
-      .map((r: string) => r.replace(/^[-–—]\s*/, "").trim())
-      .filter((r: string) => r.length > 0);
+      if (data?.message) {
+        alert(data.message);
+        return;
+      }
 
-    if (newRefs.length === 0) {
-      alert("No references were generated.");
-      return;
-    }
+      if (!data?.result || typeof data.result !== "string") {
+        alert("No references were returned.");
+        return;
+      }
 
-    const mergedResults = [...results, ...newRefs].sort((a, b) =>
-      a.localeCompare(b, undefined, { sensitivity: "base" })
-    );
+      const newRefs = data.result
+        .split("\n")
+        .map((r: string) => r.replace(/^[-–—]\s*/, "").trim())
+        .filter((r: string) => r.length > 0);
 
-    setResults(mergedResults);
+      if (newRefs.length === 0) {
+        alert("No references were generated.");
+        return;
+      }
 
-    if (canUseHistory) {
-      const uniqueHistory = Array.from(new Set([...history, ...newRefs])).sort(
-        (a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })
+      const mergedResults = [...results, ...newRefs].sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: "base" })
       );
 
-      setHistory(uniqueHistory);
-      localStorage.setItem("refai-history", JSON.stringify(uniqueHistory));
-    }
-  } catch (error) {
-    console.error("Generate failed:", error);
-    alert("Something went wrong while generating references.");
-  } finally {
-    setLoading(false);
-  }
-};
+      setResults(mergedResults);
 
-  // PDF
+      if (canUseHistory) {
+        const uniqueHistory = Array.from(
+          new Set([...history, ...newRefs])
+        ).sort((a, b) =>
+          a.localeCompare(b, undefined, { sensitivity: "base" })
+        );
+
+        setHistory(uniqueHistory);
+        localStorage.setItem("refai-history", JSON.stringify(uniqueHistory));
+      }
+    } catch (error) {
+      console.error("Generate failed:", error);
+      alert("Something went wrong while generating references.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const exportPDF = () => {
     if (!canUsePdfExport) {
       goToPricing();
@@ -262,7 +260,6 @@ export default function Page() {
     doc.save("refai.pdf");
   };
 
-  // CLEAR FUNCTIONS
   const clearAll = () => setResults([]);
 
   const clearHistory = () => {
@@ -270,32 +267,26 @@ export default function Page() {
     localStorage.removeItem("refai-history");
   };
 
-  // COMMENT → mail app
   const sendComment = () => {
     const subject = encodeURIComponent("RefAI Feedback");
     const body = encodeURIComponent(comment);
-
     window.open(`mailto:yourgmail@gmail.com?subject=${subject}&body=${body}`);
     setComment("");
   };
 
   const usageMessage = () => {
-   if (!usageReady) return "Checking usage...";
-
-if (usageInfo?.isPro) {
-  return "Pro plan active — unlimited generations";
-}
-
-if (usageInfo) {
-  return `Free plan — ${usageInfo.remaining} left today`;
-}
-
-return "Free plan — usage updates after first generation";
+    if (!usageReady) return "Checking usage...";
+    if (usageInfo?.isPro || canUseUnlimited) {
+      return "Pro plan active — unlimited generations";
+    }
+    if (usageInfo) {
+      return `Free plan — ${usageInfo.remaining} left today`;
+    }
+    return "Free plan — usage updates after first generation";
   };
 
   return (
     <main className="fixed inset-0 bg-black text-white overflow-hidden">
-      {/* TOP BAR */}
       <div
         className={`fixed top-6 left-6 right-6 z-[999] flex items-center justify-between transition-opacity duration-500 ${
           isFinal ? "opacity-0" : "opacity-100"
@@ -331,10 +322,8 @@ return "Free plan — usage updates after first generation";
         </div>
       </div>
 
-      {/* BACKGROUND */}
       <div className="absolute inset-0 bg-black" />
 
-      {/* BLOBS */}
       <div
         className={`absolute inset-0 transition-opacity duration-700 ${
           isFinal ? "opacity-0" : "opacity-100"
@@ -357,13 +346,11 @@ return "Free plan — usage updates after first generation";
         ))}
       </div>
 
-      {/* SCROLL */}
       <div
         ref={worldRef}
         className="absolute inset-0 will-change-transform"
         style={{ transform: `translateY(${-y}px)` }}
       >
-        {/* HERO */}
         <section className="h-screen flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-6xl font-bold">RefAI</h1>
@@ -373,7 +360,6 @@ return "Free plan — usage updates after first generation";
           </div>
         </section>
 
-        {/* INFO */}
         <section className="h-screen flex items-center justify-center">
           <div className="max-w-2xl p-10 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl text-center">
             <h2 className="text-4xl font-bold mb-6">
@@ -385,10 +371,8 @@ return "Free plan — usage updates after first generation";
           </div>
         </section>
 
-        {/* FINAL */}
         <section className="min-h-screen flex items-start justify-center bg-black py-16">
           <div className="w-full max-w-4xl px-6 text-center">
-            {/* LOGO */}
             <div className="mb-8">
               <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                 RefAI
@@ -396,10 +380,8 @@ return "Free plan — usage updates after first generation";
               <p className="text-white/50 text-sm">APA Reference Generator</p>
             </div>
 
-            {/* PLAN / USAGE INFO */}
             <div className="mb-4 text-sm text-white/60">{usageMessage()}</div>
 
-            {/* INPUT */}
             <textarea
               ref={textRef}
               value={text}
@@ -408,7 +390,6 @@ return "Free plan — usage updates after first generation";
               placeholder="Paste your text here..."
             />
 
-            {/* BUTTON */}
             <button
               onClick={handleGenerate}
               disabled={loading || !usageReady}
@@ -425,22 +406,20 @@ return "Free plan — usage updates after first generation";
                 : "Generate References"}
             </button>
 
-          {/* LIMIT MESSAGE */}
-{limitReached && (
-  <div className="mt-4 p-4 rounded-2xl bg-red-500/10 border border-red-500/30">
-    <p className="text-sm text-white/70">
-      DEBUG: latest request returned 403
-    </p>
-    <button
-      onClick={goToPricing}
-      className="mt-3 bg-white text-black px-4 py-2 rounded-xl"
-    >
-      Upgrade to Pro
-    </button>
-  </div>
-)}
+            {limitReached && (
+              <div className="mt-4 p-4 rounded-2xl bg-red-500/10 border border-red-500/30">
+                <p className="text-sm text-white/70">
+                  You’ve reached the free limit. Upgrade to Pro for unlimited access.
+                </p>
+                <button
+                  onClick={goToPricing}
+                  className="mt-3 bg-white text-black px-4 py-2 rounded-xl"
+                >
+                  Upgrade to Pro
+                </button>
+              </div>
+            )}
 
-            {/* GENERATED */}
             {results.length > 0 && (
               <div
                 ref={resultRef}
@@ -477,7 +456,6 @@ return "Free plan — usage updates after first generation";
               </div>
             )}
 
-            {/* HISTORY */}
             {canUseHistory ? (
               history.length > 0 && (
                 <div
@@ -517,7 +495,6 @@ return "Free plan — usage updates after first generation";
               </div>
             )}
 
-            {/* COMMENT */}
             <div className="mt-6 p-4 bg-white/5 border border-white/10 rounded-2xl">
               <p className="text-sm text-white/60 mb-2">Feedback</p>
 
