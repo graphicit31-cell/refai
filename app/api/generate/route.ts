@@ -106,6 +106,7 @@ export async function POST(req: Request) {
     const clerk = await clerkClient();
 
     let currentUsage = 0;
+    let rawUsage: RefAiUsageMetadata | undefined;
 
     if (!isPro) {
       if (resetUsage) {
@@ -121,57 +122,31 @@ export async function POST(req: Request) {
 
       const user = await clerk.users.getUser(userId);
 
-      const usage = user.privateMetadata?.refaiUsage as
-        | RefAiUsageMetadata
-        | undefined;
+   const rawUsage = user.privateMetadata?.refaiUsage as
+  | RefAiUsageMetadata
+  | undefined;
 
-      const isValidUsage =
-        usage &&
-        typeof usage === "object" &&
-        typeof usage.date === "string" &&
-        typeof usage.count === "number" &&
-        Number.isFinite(usage.count) &&
-        usage.count >= 0;
+const isValidUsage =
+  !!rawUsage &&
+  typeof rawUsage.date === "string" &&
+  typeof rawUsage.count === "number" &&
+  Number.isFinite(rawUsage.count) &&
+  rawUsage.count >= 0;
 
-      if (isValidUsage && usage.date === today) {
-        currentUsage = usage.count;
+      if (isValidUsage && rawUsage.date === today) {
+        currentUsage = rawUsage.count;
       } else {
         currentUsage = 0;
-
-        await clerk.users.updateUserMetadata(userId, {
-          privateMetadata: {
-            refaiUsage: {
-              date: today,
-              count: 0,
-            },
-          },
-        });
       }
 
-      console.log("RefAI usage check:", {
+      console.log("RefAI debug usage:", {
         userId,
         isPro,
         today,
-        usage,
+        rawUsage,
         currentUsage,
-        limit: FREE_DAILY_LIMIT,
         resetUsage,
       });
-
-      if (currentUsage >= FREE_DAILY_LIMIT) {
-        return NextResponse.json(
-          {
-            result: "Free limit reached. Upgrade to Pro for unlimited access.",
-            usage: {
-              isPro: false,
-              usedToday: currentUsage,
-              dailyLimit: FREE_DAILY_LIMIT,
-              remaining: 0,
-            },
-          },
-          { status: 403 }
-        );
-      }
     }
 
     const queryRes = await client.responses.create({
@@ -234,6 +209,10 @@ ${JSON.stringify(sourceData)}
       usedToday: null as number | null,
       dailyLimit: null as number | null,
       remaining: null as number | null,
+      debug: {
+        today,
+        rawUsage: rawUsage ?? null,
+      },
     };
 
     if (!isPro) {
@@ -253,13 +232,11 @@ ${JSON.stringify(sourceData)}
         usedToday: nextUsage,
         dailyLimit: FREE_DAILY_LIMIT,
         remaining: Math.max(0, FREE_DAILY_LIMIT - nextUsage),
+        debug: {
+          today,
+          rawUsage: rawUsage ?? null,
+        },
       };
-
-      console.log("RefAI usage updated:", {
-        userId,
-        today,
-        nextUsage,
-      });
     }
 
     return NextResponse.json(
