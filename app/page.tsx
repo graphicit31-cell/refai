@@ -352,20 +352,29 @@ export default function Page() {
 
       <div className="absolute inset-0 bg-black" />
 
-      {isMobile ? (
+       {isMobile ? (
   <div className="absolute inset-0 overflow-hidden pointer-events-none">
     {/* base */}
     <div className="absolute inset-0 bg-gradient-to-b from-black via-[#050816] to-black" />
 
-    {/* main blue glow */}
+    {/* main hero glow */}
     <div className="absolute top-[-80px] left-1/2 -translate-x-1/2 w-[380px] h-[380px] bg-blue-500/40 rounded-full blur-3xl" />
 
-    {/* new middle brand blob */}
-    <div className="absolute top-[38%] left-1/2 -translate-x-1/2 w-[240px] h-[240px] bg-indigo-500/28 rounded-full blur-2xl" />
+    {/* middle brand blob */}
+    <div className="absolute top-[38%] left-1/2 -translate-x-1/2 w-[240px] h-[240px] bg-indigo-500/30 rounded-full blur-2xl" />
 
-    {/* side blobs */}
+    {/* left blob */}
     <div className="absolute top-1/3 -left-20 w-[260px] h-[260px] bg-indigo-500/30 rounded-full blur-2xl" />
+
+    {/* right blob */}
     <div className="absolute bottom-0 right-[-60px] w-[300px] h-[300px] bg-cyan-400/25 rounded-full blur-2xl" />
+
+    {/* 🔵 NEW blobs (adds depth) */}
+    <div className="absolute bottom-[20%] left-[10%] w-[180px] h-[180px] bg-blue-400/25 rounded-full blur-2xl" />
+
+    <div className="absolute top-[55%] right-[15%] w-[160px] h-[160px] bg-indigo-400/20 rounded-full blur-2xl" />
+
+    <div className="absolute bottom-[-40px] left-1/2 -translate-x-1/2 w-[220px] h-[220px] bg-cyan-300/20 rounded-full blur-2xl" />
 
     {/* subtle highlight */}
     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.06),transparent_60%)]" />
