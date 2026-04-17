@@ -25,45 +25,11 @@ export default function Page() {
   // SUBSCRIPTION / LIMIT SECTION
   const FREE_DAILY_LIMIT = 3;
   const [usageCount, setUsageCount] = useState(0);
+  const [usageReady, setUsageReady] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
 
   const { isLoaded, isSignedIn, has } = useAuth();
   const { user } = useUser();
-
-  console.log("isLoaded:", isLoaded);
-  console.log("isSignedIn:", isSignedIn);
-  console.log(
-    "unlimited_generations:",
-    isLoaded && isSignedIn ? has({ feature: "unlimited_generations" }) : false
-  );
-  console.log(
-    "pdf_export:",
-    isLoaded && isSignedIn ? has({ feature: "pdf_export" }) : false
-  );
-  console.log(
-    "history_access:",
-    isLoaded && isSignedIn ? has({ feature: "history_access" }) : false
-  );
-
-  useEffect(() => {
-    const shouldRefresh =
-      typeof window !== "undefined" &&
-      window.location.search.includes("refreshBilling=true");
-
-    if (!shouldRefresh || !user) return;
-
-    const run = async () => {
-      try {
-        await user.reload();
-        window.history.replaceState({}, "", "/");
-        window.location.reload();
-      } catch (err) {
-        console.error("Billing refresh failed:", err);
-      }
-    };
-
-    run();
-  }, [user]);
 
   const [, force] = useState(0);
 
@@ -91,9 +57,31 @@ export default function Page() {
   const canUseHistory =
     isLoaded && isSignedIn ? has({ feature: "history_access" }) : false;
 
+  const remainingGenerations = Math.max(0, FREE_DAILY_LIMIT - usageCount);
+
   const goToPricing = () => {
     window.location.href = "/pricing";
   };
+
+  useEffect(() => {
+    const shouldRefresh =
+      typeof window !== "undefined" &&
+      window.location.search.includes("refreshBilling=true");
+
+    if (!shouldRefresh || !user) return;
+
+    const run = async () => {
+      try {
+        await user.reload();
+        window.history.replaceState({}, "", "/");
+        window.location.reload();
+      } catch (err) {
+        console.error("Billing refresh failed:", err);
+      }
+    };
+
+    run();
+  }, [user]);
 
   // LOAD HISTORY
   useEffect(() => {
@@ -114,6 +102,8 @@ export default function Page() {
     } else {
       setUsageCount(Number(savedCount || 0));
     }
+
+    setUsageReady(true);
   }, []);
 
   // SCROLL CONTROL
@@ -189,6 +179,7 @@ export default function Page() {
   // GENERATE
   const handleGenerate = async () => {
     if (!text.trim()) return;
+    if (!usageReady) return;
 
     setLimitReached(false);
 
@@ -381,19 +372,19 @@ export default function Page() {
 
             {/* PLAN / USAGE INFO */}
             <div className="mb-4 text-sm text-white/60">
-              {canUseUnlimited
+              {!usageReady
+                ? "Checking usage..."
+                : canUseUnlimited
                 ? "Pro plan active — unlimited generations"
-                : `Free plan — ${Math.max(
-                    0,
-                    FREE_DAILY_LIMIT - usageCount
-                  )} generation(s) left today`}
+                : `Free plan — ${remainingGenerations} generation(s) left today`}
             </div>
 
             {/* DEBUG (temporary) */}
             <div className="text-xs text-white/40 mb-4">
               loaded: {String(isLoaded)} | signedIn: {String(isSignedIn)} | pro:{" "}
               {String(canUseUnlimited)} | pdf: {String(canUsePdfExport)} | history:{" "}
-              {String(canUseHistory)}
+              {String(canUseHistory)} | usageReady: {String(usageReady)} | usageCount:{" "}
+              {usageCount}
             </div>
 
             {/* INPUT */}
@@ -408,9 +399,14 @@ export default function Page() {
             {/* BUTTON */}
             <button
               onClick={handleGenerate}
-              className="w-full bg-blue-500 py-3 rounded-2xl"
+              disabled={loading || !usageReady}
+              className={`w-full py-3 rounded-2xl ${
+                loading || !usageReady
+                  ? "bg-blue-500/50 cursor-not-allowed"
+                  : "bg-blue-500"
+              }`}
             >
-              {loading ? "Generating..." : "Generate References"}
+              {!usageReady ? "Checking plan..." : loading ? "Generating..." : "Generate References"}
             </button>
 
             {/* LIMIT MESSAGE */}
