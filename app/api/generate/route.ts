@@ -79,6 +79,8 @@ function extractOutputText(response: any): string {
 
 export async function POST(req: Request) {
   try {
+    console.log("🚀 ROUTE HIT");
+
     const { userId, has } = await auth();
 
     if (!userId) {
@@ -122,22 +124,22 @@ export async function POST(req: Request) {
 
       const user = await clerk.users.getUser(userId);
 
-   const rawUsage = user.privateMetadata?.refaiUsage as
+     rawUsage = user.privateMetadata?.refaiUsage as
   | RefAiUsageMetadata
   | undefined;
 
-const isValidUsage =
-  !!rawUsage &&
+if (
+  rawUsage &&
   typeof rawUsage.date === "string" &&
   typeof rawUsage.count === "number" &&
   Number.isFinite(rawUsage.count) &&
-  rawUsage.count >= 0;
-
-      if (isValidUsage && rawUsage.date === today) {
-        currentUsage = rawUsage.count;
-      } else {
-        currentUsage = 0;
-      }
+  rawUsage.count >= 0
+) {
+  const usage = rawUsage;
+  currentUsage = usage.date === today ? usage.count : 0;
+} else {
+  currentUsage = 0;
+}
 
       console.log("RefAI debug usage:", {
         userId,
@@ -247,6 +249,7 @@ ${JSON.stringify(sourceData)}
           url: r.url ?? "",
         })),
         usage: usageResponse,
+        debugBypass403: true,
       },
       { status: 200 }
     );
