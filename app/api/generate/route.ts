@@ -88,6 +88,9 @@ export async function POST(req: Request) {
       );
     }
 
+    const url = new URL(req.url);
+    const resetUsage = url.searchParams.get("resetUsage") === "true";
+
     const body = await req.json().catch(() => null);
     const text = body?.text;
 
@@ -100,11 +103,22 @@ export async function POST(req: Request) {
 
     const isPro = has({ feature: "unlimited_generations" });
     const today = getTodayJST();
+    const clerk = await clerkClient();
 
     let currentUsage = 0;
 
     if (!isPro) {
-      const clerk = await clerkClient();
+      if (resetUsage) {
+        await clerk.users.updateUserMetadata(userId, {
+          privateMetadata: {
+            refaiUsage: {
+              date: today,
+              count: 0,
+            },
+          },
+        });
+      }
+
       const user = await clerk.users.getUser(userId);
 
       const usage = user.privateMetadata?.refaiUsage as
@@ -141,6 +155,7 @@ export async function POST(req: Request) {
         usage,
         currentUsage,
         limit: FREE_DAILY_LIMIT,
+        resetUsage,
       });
 
       if (currentUsage >= FREE_DAILY_LIMIT) {
@@ -223,7 +238,6 @@ ${JSON.stringify(sourceData)}
 
     if (!isPro) {
       const nextUsage = currentUsage + 1;
-      const clerk = await clerkClient();
 
       await clerk.users.updateUserMetadata(userId, {
         privateMetadata: {
