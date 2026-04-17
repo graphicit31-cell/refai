@@ -352,7 +352,12 @@ export default function Page() {
 
       <div className="absolute inset-0 bg-black" />
 
-      {!isMobile && (
+      {isMobile ? (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.14),_transparent_38%),radial-gradient(circle_at_80%_30%,_rgba(99,102,241,0.12),_transparent_32%),radial-gradient(circle_at_30%_75%,_rgba(34,211,238,0.10),_transparent_30%)]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.03] via-transparent to-transparent" />
+        </div>
+      ) : (
         <div
           className={`absolute inset-0 transition-opacity duration-700 ${
             isFinal ? "opacity-0" : "opacity-100"
@@ -394,7 +399,7 @@ export default function Page() {
           <div
             className={`max-w-2xl p-10 rounded-3xl text-center ${
               isMobile
-                ? "bg-white/5 border border-white/10"
+                ? "bg-white/[0.04] border border-white/10 shadow-[0_0_60px_rgba(59,130,246,0.06)]"
                 : "bg-white/5 border border-white/10 backdrop-blur-xl"
             }`}
           >
@@ -407,7 +412,7 @@ export default function Page() {
           </div>
         </section>
 
-        <section className="min-h-screen flex items-start justify-center bg-black py-16">
+        <section className="min-h-screen flex items-start justify-center bg-black/80 py-16">
           <div className="w-full max-w-4xl px-6 text-center">
             <div className="mb-8">
               <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
