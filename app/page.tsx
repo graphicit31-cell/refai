@@ -354,8 +354,11 @@ export default function Page() {
 
       {isMobile ? (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.14),_transparent_38%),radial-gradient(circle_at_80%_30%,_rgba(99,102,241,0.12),_transparent_32%),radial-gradient(circle_at_30%_75%,_rgba(34,211,238,0.10),_transparent_30%)]" />
-          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.03] via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-[#050816] to-black" />
+          <div className="absolute -top-40 -left-20 w-[300px] h-[300px] bg-blue-500/30 rounded-full blur-2xl" />
+          <div className="absolute top-1/3 -right-20 w-[260px] h-[260px] bg-indigo-500/25 rounded-full blur-2xl" />
+          <div className="absolute bottom-0 left-1/3 w-[280px] h-[280px] bg-cyan-400/20 rounded-full blur-2xl" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05),transparent_60%)]" />
         </div>
       ) : (
         <div
