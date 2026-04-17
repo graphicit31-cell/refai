@@ -2,6 +2,9 @@ import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
+export const runtime = "nodejs";
+export const maxDuration = 30;
+
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
@@ -14,13 +17,15 @@ type RefAiUsageMetadata = {
   count: number;
 };
 
-function getTodayKey() {
-  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+function getTodayJST() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
-// ======================
-// SAFE TAVILY (WITH TIMEOUT)
-// ======================
 async function tavilySearch(query: string) {
   try {
     const controller = new AbortController();
@@ -38,23 +43,40 @@ async function tavilySearch(query: string) {
         max_results: 3,
       }),
       signal: controller.signal,
+      cache: "no-store",
     });
 
     clearTimeout(timeout);
 
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error("Tavily error:", res.status, await res.text());
+      return [];
+    }
 
     const data = await res.json();
-    return data.results || [];
+    return Array.isArray(data?.results) ? data.results : [];
   } catch (err) {
     console.warn("Tavily failed:", err);
     return [];
   }
 }
 
-// ======================
-// MAIN ROUTE
-// ======================
+function extractOutputText(response: any): string {
+  let output = "";
+
+  for (const item of response?.output || []) {
+    if (item?.type === "message") {
+      for (const c of item?.content || []) {
+        if (c?.type === "output_text" && typeof c.text === "string") {
+          output += c.text;
+        }
+      }
+    }
+  }
+
+  return output.trim();
+}
+
 export async function POST(req: Request) {
   try {
     const { userId, has } = await auth();
@@ -66,7 +88,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const { text } = await req.json();
+    const body = await req.json().catch(() => null);
+    const text = body?.text;
 
     if (!text || typeof text !== "string" || !text.trim()) {
       return NextResponse.json(
@@ -76,7 +99,7 @@ export async function POST(req: Request) {
     }
 
     const isPro = has({ feature: "unlimited_generations" });
-    const today = getTodayKey();
+    const today = getTodayJST();
 
     let currentUsage = 0;
 
@@ -88,15 +111,37 @@ export async function POST(req: Request) {
         | RefAiUsageMetadata
         | undefined;
 
-      if (usage?.date === today && typeof usage.count === "number") {
+      const isValidUsage =
+        usage &&
+        typeof usage === "object" &&
+        typeof usage.date === "string" &&
+        typeof usage.count === "number" &&
+        Number.isFinite(usage.count) &&
+        usage.count >= 0;
+
+      if (isValidUsage && usage.date === today) {
         currentUsage = usage.count;
+      } else {
+        currentUsage = 0;
+
+        await clerk.users.updateUserMetadata(userId, {
+          privateMetadata: {
+            refaiUsage: {
+              date: today,
+              count: 0,
+            },
+          },
+        });
       }
 
-      console.log("userId:", userId);
-      console.log("isPro:", isPro);
-      console.log("today:", today);
-      console.log("currentUsage:", currentUsage);
-      console.log("FREE_DAILY_LIMIT:", FREE_DAILY_LIMIT);
+      console.log("RefAI usage check:", {
+        userId,
+        isPro,
+        today,
+        usage,
+        currentUsage,
+        limit: FREE_DAILY_LIMIT,
+      });
 
       if (currentUsage >= FREE_DAILY_LIMIT) {
         return NextResponse.json(
@@ -114,31 +159,19 @@ export async function POST(req: Request) {
       }
     }
 
-    // ======================
-    // 1. EXTRACT KEYWORDS
-    // ======================
     const queryRes = await client.responses.create({
       model: "gpt-4.1-mini",
       input: `
 Extract 3 academic search keywords from this text.
 Return comma-separated only.
+Keep them short and useful for academic web search.
 
 TEXT:
 ${text}
       `,
     });
 
-    let queryText = "";
-
-    for (const item of queryRes.output || []) {
-      if (item.type === "message") {
-        for (const c of item.content || []) {
-          if (c.type === "output_text") {
-            queryText += c.text;
-          }
-        }
-      }
-    }
+    const queryText = extractOutputText(queryRes);
 
     const queries = queryText
       .split(",")
@@ -147,62 +180,42 @@ ${text}
 
     const safeQueries = queries.length > 0 ? queries : [text.trim()];
 
-    // ======================
-    // 2. TAVILY SEARCH
-    // ======================
     const resultsArrays = await Promise.all(
       safeQueries.map((q) => tavilySearch(q))
     );
 
-    const allResults = resultsArrays.flat();
+    const allResults = resultsArrays
+      .flat()
+      .filter((r: any) => r && (r.title || r.url));
 
-    // ======================
-    // 3. FALLBACK SOURCE DATA
-    // ======================
     const sourceData =
       allResults.length > 0
         ? allResults
         : [{ title: "No sources found", url: "" }];
 
-    // ======================
-    // 4. FORMAT APA
-    // ======================
     const formatRes = await client.responses.create({
       model: "gpt-4.1-mini",
       input: `
 You are an APA 7 reference generator.
 
 RULES:
-- Use ONLY provided sources
-- Format APA 7 strictly
+- Use ONLY the provided sources
+- Format APA 7 as accurately as possible
 - One reference per line
-- Include URL if available
-- No invented sources
-- If the source data is incomplete, do your best with ONLY the available fields
-- Do not add explanations
+- Include URL only if available
+- Do not invent missing details
+- If source data is incomplete, use only available fields
+- Do not add explanations, headings, bullets, or notes
 
 SOURCES:
 ${JSON.stringify(sourceData)}
       `,
     });
 
-    let output = "";
+    const output = extractOutputText(formatRes);
 
-    for (const item of formatRes.output || []) {
-      if (item.type === "message") {
-        for (const c of item.content || []) {
-          if (c.type === "output_text") {
-            output += c.text;
-          }
-        }
-      }
-    }
-
-    // ======================
-    // 5. SAVE UPDATED USAGE
-    // ======================
     let usageResponse = {
-      isPro,
+      isPro: Boolean(isPro),
       usedToday: null as number | null,
       dailyLimit: null as number | null,
       remaining: null as number | null,
@@ -221,24 +234,31 @@ ${JSON.stringify(sourceData)}
         },
       });
 
-      console.log("newUsage:", nextUsage);
-
       usageResponse = {
         isPro: false,
         usedToday: nextUsage,
         dailyLimit: FREE_DAILY_LIMIT,
         remaining: Math.max(0, FREE_DAILY_LIMIT - nextUsage),
       };
+
+      console.log("RefAI usage updated:", {
+        userId,
+        today,
+        nextUsage,
+      });
     }
 
-    return NextResponse.json({
-      result: output || "No references generated.",
-      sources: allResults.map((r: any) => ({
-        title: r.title,
-        url: r.url,
-      })),
-      usage: usageResponse,
-    });
+    return NextResponse.json(
+      {
+        result: output || "No references generated.",
+        sources: allResults.map((r: any) => ({
+          title: r.title ?? "",
+          url: r.url ?? "",
+        })),
+        usage: usageResponse,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("API ERROR:", error);
 
