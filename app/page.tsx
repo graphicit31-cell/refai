@@ -4,10 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import jsPDF from "jspdf";
 import Logo from "@/components/Logo";
 import {
+SignInButton,
+  SignUpButton,
   UserButton,
   useAuth,
   useUser,
-  useClerk,
 } from "@clerk/nextjs";
 
 type UsageInfo = {
@@ -31,7 +32,6 @@ export default function Page() {
 
   const { isLoaded, isSignedIn, has } = useAuth();
   const { user } = useUser();
-  const { openSignIn, openSignUp } = useClerk();
 
   const [, force] = useState(0);
 
@@ -324,33 +324,23 @@ useEffect(() => {
           >
             Upgrade
           </button>
-{isSignedIn ? (
-  <UserButton />
-) : (
+{isLoaded && !isSignedIn && (
   <>
-    <button
-      type="button"
-      onClick={(e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  openSignIn();
-}}
-      className="text-sm border border-white/20 px-3 py-2 rounded-xl hover:bg-white/10 transition"
-    >
-      Log in
-    </button>
+    <SignInButton mode="modal">
+      <button className="text-sm border border-white/20 px-3 py-2 rounded-xl hover:bg-white/10 transition">
+        Log in
+      </button>
+    </SignInButton>
 
-    <button
-      type="button"
-      onClick={() => openSignUp()}
-      className="text-sm bg-blue-500 px-3 py-2 rounded-xl hover:opacity-90 transition"
-    >
-      Sign up
-    </button>
+    <SignUpButton mode="modal">
+      <button className="text-sm bg-blue-500 px-3 py-2 rounded-xl hover:opacity-90 transition">
+        Sign up
+      </button>
+    </SignUpButton>
   </>
 )}
 
-
+{isLoaded && isSignedIn && <UserButton />}
         </div>
       </div>
 
