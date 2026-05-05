@@ -10,6 +10,12 @@ export default function Page() {
         path="/sign-in"
         signUpUrl="/sign-up"
         fallbackRedirectUrl="/"
+        appearance={{
+          elements: {
+            rootBox: "w-full flex justify-center",
+            cardBox: "shadow-2xl",
+          },
+        }}
       />
     </main>
   );
