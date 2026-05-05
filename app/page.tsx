@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import jsPDF from "jspdf";
 import Logo from "@/components/Logo";
 import {
-SignInButton,
+  SignInButton,
   SignUpButton,
   UserButton,
   useAuth,
@@ -94,8 +94,12 @@ export default function Page() {
   }, [user]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("refai-history");
-    if (saved) setHistory(JSON.parse(saved));
+    try {
+      const saved = localStorage.getItem("refai-history");
+      if (saved) setHistory(JSON.parse(saved));
+    } catch {
+      localStorage.removeItem("refai-history");
+    }
   }, []);
 
   useEffect(() => {
@@ -139,11 +143,12 @@ export default function Page() {
     return () => window.removeEventListener("wheel", onWheel);
   }, [isMobile]);
 
-useEffect(() => {
-  if (!isMobile) {
-    document.body.style.overflow = "auto";
-  }
-}, [isMobile]);
+  useEffect(() => {
+    document.body.style.overflow = isMobile ? "auto" : "auto";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobile]);
 
   useEffect(() => {
     if (isMobile) {
@@ -194,8 +199,6 @@ useEffect(() => {
     setLimitReached(false);
 
     try {
-      console.log("fetching /api/generate");
-
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -203,9 +206,6 @@ useEffect(() => {
       });
 
       const data = await res.json();
-
-      console.log("generate status:", res.status);
-      console.log("generate data:", data);
 
       setLimitReached(res.status === 403);
 
@@ -287,7 +287,7 @@ useEffect(() => {
   const sendComment = () => {
     const subject = encodeURIComponent("RefAI Feedback");
     const body = encodeURIComponent(comment);
-    window.open(`mailto:yourgmail@gmail.com?subject=${subject}&body=${body}`);
+    window.location.href = `mailto:yourgmail@gmail.com?subject=${subject}&body=${body}`;
     setComment("");
   };
 
@@ -303,86 +303,75 @@ useEffect(() => {
   };
 
   return (
-    <main
-  className={`inset-0 bg-black text-white ${
-    isMobile
-      ? "relative min-h-screen overflow-x-hidden"
-      : "relative min-h-screen overflow-x-hidden"
-  }`}
->
+    <main className="relative min-h-screen overflow-x-hidden bg-black text-white">
       <div
-        className={`fixed top-6 left-6 right-6 z-[999] flex items-center justify-between transition-opacity duration-500 ${
-          !isMobile && isFinal ? "opacity-0" : "opacity-100"
+        className={`fixed top-6 left-6 right-6 z-50 flex items-center justify-between transition-opacity duration-500 pointer-events-auto ${
+          !isMobile && isFinal
+            ? "opacity-0 pointer-events-none"
+            : "opacity-100 pointer-events-auto"
         }`}
       >
         <Logo />
 
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={goToPricing}
             className="text-sm bg-white text-black px-3 py-2 rounded-xl hover:opacity-90 transition"
           >
             Upgrade
           </button>
-{isLoaded && !isSignedIn && (
-  <>
-    <SignInButton mode="modal">
-      <button className="text-sm border border-white/20 px-3 py-2 rounded-xl hover:bg-white/10 transition">
-        Log in
-      </button>
-    </SignInButton>
 
-    <SignUpButton mode="modal">
-      <button className="text-sm bg-blue-500 px-3 py-2 rounded-xl hover:opacity-90 transition">
-        Sign up
-      </button>
-    </SignUpButton>
-  </>
-)}
+          {isLoaded && !isSignedIn && (
+            <>
+              <SignInButton mode="redirect">
+                <button
+                  type="button"
+                  className="text-sm border border-white/20 px-3 py-2 rounded-xl hover:bg-white/10 transition"
+                >
+                  Log in
+                </button>
+              </SignInButton>
 
-{isLoaded && isSignedIn && <UserButton />}
+              <SignUpButton mode="redirect">
+                <button
+                  type="button"
+                  className="text-sm bg-blue-500 px-3 py-2 rounded-xl hover:opacity-90 transition"
+                >
+                  Sign up
+                </button>
+              </SignUpButton>
+            </>
+          )}
+
+          {isLoaded && isSignedIn && <UserButton />}
         </div>
       </div>
 
       <div className="absolute inset-0 bg-black" />
 
-       {isMobile ? (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    {/* base */}
-    <div className="absolute inset-0 bg-gradient-to-b from-black via-[#050816] to-black" />
-
-    {/* main hero glow */}
-    <div className="absolute top-[-80px] left-1/2 -translate-x-1/2 w-[380px] h-[380px] bg-blue-500/40 rounded-full blur-3xl" />
-
-    {/* middle brand blob */}
-    <div className="absolute top-[38%] left-1/2 -translate-x-1/2 w-[240px] h-[240px] bg-indigo-500/30 rounded-full blur-2xl" />
-
-    {/* left blob */}
-    <div className="absolute top-1/3 -left-20 w-[260px] h-[260px] bg-indigo-500/30 rounded-full blur-2xl" />
-
-    {/* right blob */}
-    <div className="absolute bottom-0 right-[-60px] w-[300px] h-[300px] bg-cyan-400/25 rounded-full blur-2xl" />
-
-    {/* 🔵 NEW blobs (adds depth) */}
-    <div className="absolute bottom-[20%] left-[10%] w-[180px] h-[180px] bg-blue-400/25 rounded-full blur-2xl" />
-
-    <div className="absolute top-[55%] right-[15%] w-[160px] h-[160px] bg-indigo-400/20 rounded-full blur-2xl" />
-
-    <div className="absolute bottom-[-40px] left-1/2 -translate-x-1/2 w-[220px] h-[220px] bg-cyan-300/20 rounded-full blur-2xl" />
-
-    {/* subtle highlight */}
-    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.06),transparent_60%)]" />
-  </div>
-) : (
+      {isMobile ? (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-[#050816] to-black" />
+          <div className="absolute top-[-80px] left-1/2 -translate-x-1/2 w-[380px] h-[380px] bg-blue-500/40 rounded-full blur-3xl" />
+          <div className="absolute top-[38%] left-1/2 -translate-x-1/2 w-[240px] h-[240px] bg-indigo-500/30 rounded-full blur-2xl" />
+          <div className="absolute top-1/3 -left-20 w-[260px] h-[260px] bg-indigo-500/30 rounded-full blur-2xl" />
+          <div className="absolute bottom-0 right-[-60px] w-[300px] h-[300px] bg-cyan-400/25 rounded-full blur-2xl" />
+          <div className="absolute bottom-[20%] left-[10%] w-[180px] h-[180px] bg-blue-400/25 rounded-full blur-2xl" />
+          <div className="absolute top-[55%] right-[15%] w-[160px] h-[160px] bg-indigo-400/20 rounded-full blur-2xl" />
+          <div className="absolute bottom-[-40px] left-1/2 -translate-x-1/2 w-[220px] h-[220px] bg-cyan-300/20 rounded-full blur-2xl" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.06),transparent_60%)]" />
+        </div>
+      ) : (
         <div
-          className={`absolute inset-0 transition-opacity duration-700 ${
+          className={`absolute inset-0 transition-opacity duration-700 pointer-events-none ${
             isFinal ? "opacity-0" : "opacity-100"
           }`}
         >
           {blobs.current.map((b, i) => (
             <div
               key={i}
-              className={`absolute w-72 h-72 blur-3xl rounded-full opacity-30 ${
+              className={`absolute left-1/2 top-1/2 w-72 h-72 blur-3xl rounded-full opacity-30 ${
                 i === 0
                   ? "bg-blue-500"
                   : i === 1
@@ -390,7 +379,7 @@ useEffect(() => {
                   : "bg-cyan-400"
               }`}
               style={{
-                transform: `translate(calc(50vw + ${b.x}px), calc(50vh + ${b.y}px))`,
+                transform: `translate3d(${b.x}px, ${b.y}px, 0)`,
               }}
             />
           ))}
@@ -399,8 +388,12 @@ useEffect(() => {
 
       <div
         ref={worldRef}
-        className={isMobile ? "relative z-10" : "absolute inset-0 will-change-transform"}
-        style={isMobile ? undefined : { transform: `translateY(${-y}px)` }}
+        className={
+          isMobile
+            ? "relative z-10"
+            : "absolute inset-0 z-10 will-change-transform"
+        }
+        style={isMobile ? undefined : { transform: `translate3d(0, ${-y}px, 0)` }}
       >
         <section className="h-screen flex items-center justify-center">
           <div className="text-center px-6">
@@ -448,6 +441,7 @@ useEffect(() => {
             />
 
             <button
+              type="button"
               onClick={handleGenerate}
               disabled={loading || !usageReady}
               className={`w-full py-3 rounded-2xl transition ${
@@ -469,6 +463,7 @@ useEffect(() => {
                   You’ve reached the free limit. Upgrade to Pro for unlimited access.
                 </p>
                 <button
+                  type="button"
                   onClick={goToPricing}
                   className="mt-3 bg-white text-black px-4 py-2 rounded-xl"
                 >
@@ -485,6 +480,7 @@ useEffect(() => {
                 <div className="flex justify-between mb-3">
                   <p className="text-sm text-white/60">Generated</p>
                   <button
+                    type="button"
                     onClick={clearAll}
                     className="text-xs border px-2 py-1 rounded-lg hover:bg-white/10 transition"
                   >
@@ -501,6 +497,7 @@ useEffect(() => {
                 </ul>
 
                 <button
+                  type="button"
                   onClick={exportPDF}
                   className={`mt-4 w-full py-2 rounded-xl transition ${
                     canUsePdfExport
@@ -522,6 +519,7 @@ useEffect(() => {
                   <div className="flex justify-between mb-3">
                     <p className="text-sm text-white/60">History</p>
                     <button
+                      type="button"
                       onClick={clearHistory}
                       className="text-xs border px-2 py-1 rounded-lg hover:bg-white/10 transition"
                     >
@@ -544,6 +542,7 @@ useEffect(() => {
                   Saved history is available on Pro.
                 </p>
                 <button
+                  type="button"
                   onClick={goToPricing}
                   className="mt-3 bg-blue-500 px-4 py-2 rounded-xl hover:opacity-90 transition"
                 >
@@ -563,6 +562,7 @@ useEffect(() => {
               />
 
               <button
+                type="button"
                 onClick={sendComment}
                 className="w-full bg-green-500 py-2 rounded-xl hover:opacity-90 transition"
               >
