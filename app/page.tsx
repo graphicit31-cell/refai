@@ -346,7 +346,7 @@ useEffect(() => {
   </>
 )}
 
-{isLoaded && isSignedIn && <UserButton />}
+
         </div>
       </div>
 
