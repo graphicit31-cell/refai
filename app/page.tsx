@@ -4,11 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import jsPDF from "jspdf";
 import Logo from "@/components/Logo";
 import {
-  SignInButton,
-  SignUpButton,
   UserButton,
   useAuth,
   useUser,
+  useClerk,
 } from "@clerk/nextjs";
 
 type UsageInfo = {
@@ -32,6 +31,8 @@ export default function Page() {
 
   const { isLoaded, isSignedIn, has } = useAuth();
   const { user } = useUser();
+
+  const { openSignIn, openSignUp } = useClerk();
 
   const [, force] = useState(0);
 
@@ -324,31 +325,21 @@ export default function Page() {
 
           {!isSignedIn && (
   <>
-    <SignInButton
-      mode="redirect"
-      forceRedirectUrl="/"
-      fallbackRedirectUrl="/"
+    <button
+      type="button"
+      onClick={() => openSignIn({ fallbackRedirectUrl: "/" })}
+      className="text-sm border border-white/20 px-3 py-2 rounded-xl hover:bg-white/10 transition"
     >
-      <button
-        type="button"
-        className="text-sm border border-white/20 px-3 py-2 rounded-xl hover:bg-white/10 transition"
-      >
-        Log in
-      </button>
-    </SignInButton>
+      Log in
+    </button>
 
-    <SignUpButton
-      mode="redirect"
-      forceRedirectUrl="/"
-      fallbackRedirectUrl="/"
+    <button
+      type="button"
+      onClick={() => openSignUp({ fallbackRedirectUrl: "/" })}
+      className="text-sm bg-blue-500 px-3 py-2 rounded-xl hover:opacity-90 transition"
     >
-      <button
-        type="button"
-        className="text-sm bg-blue-500 px-3 py-2 rounded-xl hover:opacity-90 transition"
-      >
-        Sign up
-      </button>
-    </SignUpButton>
+      Sign up
+    </button>
   </>
 )}
 
