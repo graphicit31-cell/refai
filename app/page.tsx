@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import jsPDF from "jspdf";
 import Logo from "@/components/Logo";
 import {
-  Show,
-  SignInButton,
+SignInButton,
   SignUpButton,
   UserButton,
   useAuth,
@@ -325,24 +324,23 @@ useEffect(() => {
           >
             Upgrade
           </button>
+{isLoaded && !isSignedIn && (
+  <>
+    <SignInButton mode="modal">
+      <button className="text-sm border border-white/20 px-3 py-2 rounded-xl hover:bg-white/10 transition">
+        Log in
+      </button>
+    </SignInButton>
 
-          <Show when="signed-out">
-            <SignInButton mode="modal">
-              <button className="text-sm border border-white/20 px-3 py-2 rounded-xl hover:bg-white/10 transition">
-                Log in
-              </button>
-            </SignInButton>
+    <SignUpButton mode="modal">
+      <button className="text-sm bg-blue-500 px-3 py-2 rounded-xl hover:opacity-90 transition">
+        Sign up
+      </button>
+    </SignUpButton>
+  </>
+)}
 
-            <SignUpButton mode="modal">
-              <button className="text-sm bg-blue-500 px-3 py-2 rounded-xl hover:opacity-90 transition">
-                Sign up
-              </button>
-            </SignUpButton>
-          </Show>
-
-          <Show when="signed-in">
-            <UserButton />
-          </Show>
+{isLoaded && isSignedIn && <UserButton />}
         </div>
       </div>
 
