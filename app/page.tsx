@@ -310,11 +310,12 @@ useEffect(() => {
   }`}
 >
     
+    
       <div
-        className={`fixed top-6 left-6 right-6 z-[999] flex items-center justify-between transition-opacity duration-500 ${
-          !isMobile && isFinal ? "opacity-0" : "opacity-100"
-        }`}
-      >
+  className={`fixed top-6 left-6 right-6 z-[9999] flex items-center justify-between transition-opacity duration-500 ${
+    !isMobile && isFinal ? "opacity-0" : "opacity-100"
+  }`}
+>
         <Logo />
 
         <div className="flex items-center gap-3">
