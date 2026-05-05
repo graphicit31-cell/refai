@@ -305,12 +305,10 @@ useEffect(() => {
 
   return (
     <main
-  className={`inset-0 bg-black text-white ${
-    isMobile
-      ? "relative min-h-screen overflow-x-hidden"
-      : "relative min-h-screen overflow-x-hidden"
-  }`}
->
+      className={`inset-0 bg-black text-white ${
+        isMobile ? "relative min-h-screen overflow-x-hidden" : "fixed overflow-hidden"
+      }`}
+    >
       <div
         className={`fixed top-6 left-6 right-6 z-[999] flex items-center justify-between transition-opacity duration-500 ${
           !isMobile && isFinal ? "opacity-0" : "opacity-100"
