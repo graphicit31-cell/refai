@@ -348,7 +348,7 @@ useEffect(() => {
       <div className="absolute inset-0 bg-black" />
 
        {isMobile ? (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+  <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
     {/* base */}
     <div className="absolute inset-0 bg-gradient-to-b from-black via-[#050816] to-black" />
 
