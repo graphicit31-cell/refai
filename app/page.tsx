@@ -322,29 +322,29 @@ export default function Page() {
             Upgrade
           </button>
 
-          {isLoaded && !isSignedIn && (
-            <>
-              <SignInButton mode="redirect">
-                <button
-                  type="button"
-                  className="text-sm border border-white/20 px-3 py-2 rounded-xl hover:bg-white/10 transition"
-                >
-                  Log in
-                </button>
-              </SignInButton>
+          {!isSignedIn && (
+  <>
+    <SignInButton mode="redirect">
+      <button
+        type="button"
+        className="text-sm border border-white/20 px-3 py-2 rounded-xl hover:bg-white/10 transition"
+      >
+        Log in
+      </button>
+    </SignInButton>
 
-              <SignUpButton mode="redirect">
-                <button
-                  type="button"
-                  className="text-sm bg-blue-500 px-3 py-2 rounded-xl hover:opacity-90 transition"
-                >
-                  Sign up
-                </button>
-              </SignUpButton>
-            </>
-          )}
+    <SignUpButton mode="redirect">
+      <button
+        type="button"
+        className="text-sm bg-blue-500 px-3 py-2 rounded-xl hover:opacity-90 transition"
+      >
+        Sign up
+      </button>
+    </SignUpButton>
+  </>
+)}
 
-          {isLoaded && isSignedIn && <UserButton />}
+{isLoaded && isSignedIn && <UserButton />}
         </div>
       </div>
 
