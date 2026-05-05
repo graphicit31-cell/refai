@@ -323,27 +323,21 @@ export default function Page() {
             Upgrade
           </button>
 
-          {!isSignedIn && (
+         {!isSignedIn && (
   <>
-    <button
-      type="button"
-      onClick={() => {
-        window.location.href = "/sign-in";
-      }}
+    <a
+      href="/sign-in"
       className="text-sm border border-white/20 px-3 py-2 rounded-xl hover:bg-white/10 transition"
     >
       Log in
-    </button>
+    </a>
 
-    <button
-      type="button"
-      onClick={() => {
-        window.location.href = "/sign-up";
-      }}
+    <a
+      href="/sign-up"
       className="text-sm bg-blue-500 px-3 py-2 rounded-xl hover:opacity-90 transition"
     >
       Sign up
-    </button>
+    </a>
   </>
 )}
 
