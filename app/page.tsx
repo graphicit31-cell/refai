@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import jsPDF from "jspdf";
 import Logo from "@/components/Logo";
 import {
+  Show,
   SignInButton,
   SignUpButton,
   UserButton,
@@ -303,18 +304,16 @@ useEffect(() => {
   };
 
   return (
- <main
-  className={`bg-black text-white overflow-x-hidden ${
-    isMobile ? "relative min-h-screen" : "relative min-h-screen"
-  }`}
->
-    
-    
+    <main
+      className={`inset-0 bg-black text-white ${
+        isMobile ? "relative min-h-screen overflow-x-hidden" : "fixed overflow-hidden"
+      }`}
+    >
       <div
-  className={`fixed top-6 left-6 right-6 z-[9999] flex items-center justify-between transition-opacity duration-500 ${
-    !isMobile && isFinal ? "opacity-0" : "opacity-100"
-  }`}
->
+        className={`fixed top-6 left-6 right-6 z-[999] flex items-center justify-between transition-opacity duration-500 ${
+          !isMobile && isFinal ? "opacity-0" : "opacity-100"
+        }`}
+      >
         <Logo />
 
         <div className="flex items-center gap-3">
@@ -325,30 +324,30 @@ useEffect(() => {
             Upgrade
           </button>
 
-          {isLoaded && !isSignedIn && (
-  <>
-    <SignInButton mode="modal">
-      <button className="text-sm border border-white/20 px-3 py-2 rounded-xl hover:bg-white/10 transition">
-        Log in
-      </button>
-    </SignInButton>
+          <Show when="signed-out">
+            <SignInButton mode="modal">
+              <button className="text-sm border border-white/20 px-3 py-2 rounded-xl hover:bg-white/10 transition">
+                Log in
+              </button>
+            </SignInButton>
 
-    <SignUpButton mode="modal">
-      <button className="text-sm bg-blue-500 px-3 py-2 rounded-xl hover:opacity-90 transition">
-        Sign up
-      </button>
-    </SignUpButton>
-  </>
-)}
+            <SignUpButton mode="modal">
+              <button className="text-sm bg-blue-500 px-3 py-2 rounded-xl hover:opacity-90 transition">
+                Sign up
+              </button>
+            </SignUpButton>
+          </Show>
 
-{isLoaded && isSignedIn && <UserButton />}
+          <Show when="signed-in">
+            <UserButton />
+          </Show>
         </div>
       </div>
 
       <div className="absolute inset-0 bg-black" />
 
        {isMobile ? (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+  <div className="absolute inset-0 overflow-hidden pointer-events-none">
     {/* base */}
     <div className="absolute inset-0 bg-gradient-to-b from-black via-[#050816] to-black" />
 
@@ -399,10 +398,10 @@ useEffect(() => {
       )}
 
       <div
-  ref={worldRef}
-  className="relative z-10 will-change-transform"
-  style={isMobile ? undefined : { transform: `translateY(${-y}px)` }}
->
+        ref={worldRef}
+        className={isMobile ? "relative z-10" : "absolute inset-0 will-change-transform"}
+        style={isMobile ? undefined : { transform: `translateY(${-y}px)` }}
+      >
         <section className="h-screen flex items-center justify-center">
           <div className="text-center px-6">
             <h1 className="text-5xl md:text-6xl font-bold">RefAI</h1>
