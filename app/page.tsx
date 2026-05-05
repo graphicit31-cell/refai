@@ -330,8 +330,10 @@ useEffect(() => {
   <>
     <button
       type="button"
-      onClick={() => {
-  window.location.href = "/sign-in";
+      onClick={(e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  openSignIn();
 }}
       className="text-sm border border-white/20 px-3 py-2 rounded-xl hover:bg-white/10 transition"
     >
