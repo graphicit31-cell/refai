@@ -140,17 +140,11 @@ export default function Page() {
     return () => window.removeEventListener("wheel", onWheel);
   }, [isMobile]);
 
-  useEffect(() => {
-    if (isMobile) {
-      document.body.style.overflow = "";
-      return;
-    }
-
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isMobile]);
+useEffect(() => {
+  if (!isMobile) {
+    document.body.style.overflow = "auto";
+  }
+}, [isMobile]);
 
   useEffect(() => {
     if (isMobile) {
