@@ -6,7 +6,7 @@ export default function Tokushoho() {
       <p><strong>Business Name:</strong> RefAI</p>
       <p><strong>Operator:</strong> Your Name</p>
       <p><strong>Address:</strong> Will be disclosed without delay upon request</p>
-      <p><strong>Email Address:</strong> your@email.com</p>
+      <p><strong>Email Address:</strong> refai.apa7@gmail.com</p>
 
       <p><strong>Service Price:</strong> Based on the pricing displayed on each plan page</p>
       <p><strong>Additional Fees:</strong> Internet connection fees are the responsibility of the user</p>
