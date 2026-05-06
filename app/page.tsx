@@ -569,14 +569,23 @@ export default function Page() {
           </div>
         </section>
       </div>
-            <div style={{ marginTop: "80px", textAlign: "center", paddingBottom: "40px" }}>
-        <a
-          href="/tokushoho"
-          style={{ color: "white", textDecoration: "underline" }}
-        >
-          特定商取引法に基づく表記
-        </a>
-      </div>
+            <div
+  style={{
+    position: "fixed",
+    bottom: "20px",
+    left: "0",
+    right: "0",
+    textAlign: "center",
+    zIndex: 9999,
+  }}
+>
+  <a
+    href="/tokushoho"
+    style={{ color: "white", textDecoration: "underline" }}
+  >
+    特定商取引法に基づく表記
+  </a>
+</div>
     </main>
   );
 }
