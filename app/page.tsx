@@ -569,6 +569,9 @@ export default function Page() {
           </div>
         </section>
       </div>
+      <div style={{ marginTop: "80px", textAlign: "center" }}>
+  <a href="/tokushoho">特定商取引法に基づく表記</a>
+</div>
     </main>
   );
 }
