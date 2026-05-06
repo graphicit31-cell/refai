@@ -1,28 +1,34 @@
 export default function Tokushoho() {
   return (
-    <main style={{ padding: "40px", lineHeight: "1.8" }}>
-      <h1>Legal Disclosure (Specified Commercial Transactions Act)</h1>
+    <main style={{ padding: "40px", maxWidth: "800px", margin: "0 auto" }}>
+      <h1>特定商取引法に基づく表記</h1>
 
-      <p><strong>Business Name:</strong> RefAI</p>
-      <p><strong>Operator:</strong> Kaishu Terahara</p>
-      <p><strong>Address:</strong> Kanagawa, Japan</p>
-      <p><strong>Email Address:</strong> refai.apa7@gmail.com</p>
+      <p>販売事業者名：RefAI</p>
+      <p>運営責任者：寺原 海舟</p>
+      <p>所在地：神奈川県鎌倉市（請求があった場合には速やかに開示いたします）</p>
+      <p>電話番号：請求があった場合には速やかに開示いたします</p>
+      <p>メールアドレス：refai.apa7@gmail.com</p>
 
-      <p><strong>Service Description:</strong> AI-powered reference generation service for students.</p>
+      <h2>販売価格</h2>
+      <p>USD 4.99</p>
+      <p>無料プランおよび有料プラン（月額制）をご提供しています。</p>
 
-      <p><strong>Service Price:</strong> Based on the pricing displayed on each plan page.</p>
-      <p><strong>Additional Fees:</strong> Internet connection fees are the responsibility of the user.</p>
+      <h2>商品代金以外の必要料金</h2>
+      <p>インターネット接続にかかる通信料はお客様のご負担となります。</p>
 
-      <p><strong>Payment Method:</strong> Credit Card via Stripe.</p>
-      <p><strong>Payment Timing:</strong> Charged immediately upon subscription.</p>
+      <h2>支払方法</h2>
+      <p>クレジットカード（Stripe）</p>
 
-      <p><strong>Service Delivery:</strong> Access is granted immediately after payment.</p>
+      <h2>支払時期</h2>
+      <p>有料プランは申込時に課金されます。</p>
 
-      <p><strong>Refund Policy:</strong> Refunds are generally not provided due to the nature of digital services, unless required by law.</p>
+      <h2>サービス提供時期</h2>
+      <p>決済完了後、直ちにご利用いただけます。</p>
 
-      <p><strong>Cancellation Policy:</strong> Users can cancel their subscription at any time. Access will continue until the end of the current billing period.</p>
-
-      <p><strong>System Requirements:</strong> Internet access and a compatible browser are required.</p>
+      <h2>返品・キャンセル</h2>
+      <p>
+        デジタルサービスの特性上、購入後の返金・キャンセルは原則としてお受けしておりません。
+      </p>
     </main>
   );
 }
