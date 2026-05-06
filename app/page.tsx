@@ -569,23 +569,15 @@ export default function Page() {
           </div>
         </section>
       </div>
-            <div
-  style={{
-    position: "fixed",
-    bottom: "20px",
-    left: "0",
-    right: "0",
-    textAlign: "center",
-    zIndex: 9999,
-  }}
->
-  <a
-    href="/tokushoho"
-    style={{ color: "white", textDecoration: "underline" }}
-  >
-    特定商取引法に基づく表記
-  </a>
-</div>
+
+      <footer className="mt-24 pb-10 text-center">
+        <a
+          href="/tokushoho"
+          className="text-sm text-white/40 hover:text-white/70 underline underline-offset-4 transition"
+        >
+          特定商取引法に基づく表記
+        </a>
+      </footer>
     </main>
   );
 }
