@@ -549,35 +549,35 @@ export default function Page() {
             )}
 
             <div className="mt-6 p-4 bg-white/5 border border-white/10 rounded-2xl">
-              <p className="text-sm text-white/60 mb-2">Feedback</p>
+  <p className="text-sm text-white/60 mb-2">Feedback</p>
 
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                className="w-full h-24 p-3 rounded-xl bg-black/40 border border-white/10 mb-3"
-                placeholder="Write feedback..."
-              />
+  <textarea
+    value={comment}
+    onChange={(e) => setComment(e.target.value)}
+    className="w-full h-24 p-3 rounded-xl bg-black/40 border border-white/10 mb-3"
+    placeholder="Write feedback..."
+  />
 
-              <button
-                type="button"
-                onClick={sendComment}
-                className="w-full bg-green-500 py-2 rounded-xl hover:opacity-90 transition"
-              >
-                Send Feedback
-              </button>
-            </div>
+  <button
+    type="button"
+    onClick={sendComment}
+    className="w-full bg-green-500 py-2 rounded-xl hover:opacity-90 transition"
+  >
+    Send Feedback
+  </button>
+</div>
+
+<footer className="mt-10 pb-10 text-center">
+  <a
+    href="/tokushoho"
+    className="text-sm text-white/40 hover:text-white/70 underline underline-offset-4 transition"
+  >
+    特定商取引法に基づく表記
+  </a>
+</footer>
           </div>
         </section>
       </div>
-
-      <footer className="mt-24 pb-10 text-center">
-        <a
-          href="/tokushoho"
-          className="text-sm text-white/40 hover:text-white/70 underline underline-offset-4 transition"
-        >
-          特定商取引法に基づく表記
-        </a>
-      </footer>
     </main>
   );
 }
