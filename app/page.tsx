@@ -594,7 +594,6 @@ export default function Page() {
       href="mailto:support@getrefai.com"
       className="hover:text-white transition"
     >
-      Contact
     </a>
   </div>
 </footer>
