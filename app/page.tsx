@@ -567,14 +567,38 @@ export default function Page() {
   </button>
 </div>
 
-<footer className="mt-10 pb-10 text-center">
-  <a
-    href="/tokushoho"
-    className="text-sm text-white/40 hover:text-white/70 underline underline-offset-4 transition"
-  >
-    特定商取引法に基づく表記
-  </a>
+<footer className="mt-10 w-full border-t border-white/10 px-6 py-8 text-center text-sm text-white/50">
+  <div className="flex flex-wrap justify-center gap-4">
+    <a
+      href="/privacy"
+      className="hover:text-white transition"
+    >
+      Privacy Policy
+    </a>
+
+    <a
+      href="/terms"
+      className="hover:text-white transition"
+    >
+      Terms of Service
+    </a>
+
+    <a
+      href="/tokushoho"
+      className="hover:text-white transition"
+    >
+      特定商取引法に基づく表記
+    </a>
+
+    <a
+      href="mailto:support@getrefai.com"
+      className="hover:text-white transition"
+    >
+      Contact
+    </a>
+  </div>
 </footer>
+
           </div>
         </section>
       </div>
